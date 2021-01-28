@@ -14,12 +14,12 @@ public enum PlasmaTextureMethod
 
 public class PlasmaTexture : MonoBehaviour
 {
-    public int m_TextureSize = 256;
+    public int m_TextureSize = 512;
     public PlasmaTextureMethod m_Method = PlasmaTextureMethod.SetPixels;
     public UnityEngine.UI.Text m_UITime;
-    private Texture2D m_Texture;
-    private Color[] m_Colors;
-    private float m_UpdateTime = -1;
+    Texture2D m_Texture;
+    Color[] m_Colors;
+    float m_UpdateTime = -1;
 
     void CreateTextureIfNeeded()
     {
@@ -37,20 +37,22 @@ public class PlasmaTexture : MonoBehaviour
         }
     }
 
-    private void OnDisable()
+    public void OnDisable()
     {
         DestroyImmediate(m_Texture);
     }
 
+    // Calculate pixel color of a classical "plasma" effect, that
+    // is a combination of several moving linear & radial sine waves.
     static Color CalcPlasmaPixel(int x, int y, float invSize, float t)
     {
-        float cx = x * invSize * 4.0f + t * 0.3f;
-        float cy = y * invSize * 4.0f + t * 0.3f;
-        float k = 0.1f + math.cos(cy + math.sin(0.148f - t)) + 2.4f * t;
-        float w = 0.9f + math.sin(cx + math.cos(0.628f + t)) - 0.7f * t;
-        float d = math.sqrt(cx * cx + cy * cy);
-        float s = 7.0f * math.cos(d + w) * math.sin(k + w);
-        float3 cc = math.cos(s + new float3(0.2f, 0.5f, 0.9f)) * 0.5f + 0.5f;
+        var cx = x * invSize * 4.0f + t * 0.3f;
+        var cy = y * invSize * 4.0f + t * 0.3f;
+        var k = 0.1f + math.cos(cy + math.sin(0.148f - t)) + 2.4f * t;
+        var w = 0.9f + math.sin(cx + math.cos(0.628f + t)) - 0.7f * t;
+        var d = math.sqrt(cx * cx + cy * cy);
+        var s = 7.0f * math.cos(d + w) * math.sin(k + w);
+        var cc = math.cos(s + new float3(0.2f, 0.5f, 0.9f)) * 0.5f + 0.5f;
         return new Color(cc.x, cc.y, cc.z, 1);
     }
 
@@ -141,9 +143,13 @@ public class PlasmaTexture : MonoBehaviour
             case PlasmaTextureMethod.SetPixelDataBurst: UpdateSetPixelDataBurst(invSize, t); break;
             case PlasmaTextureMethod.SetPixelDataBurstParallel: UpdateSetPixelDataBurstParallel(invSize, t); break;
         }
+        // All the above calculations wrote new pixel values into a CPU
+        // side texture memory copy. We need to send it off to the GPU now.
         m_Texture.Apply();
         var t1 = Time.realtimeSinceStartup;
         var dt = t1 - t0;
+        
+        // Update "time it took" UI indicator
         if (m_UpdateTime < 0)
             m_UpdateTime = dt;
         else
