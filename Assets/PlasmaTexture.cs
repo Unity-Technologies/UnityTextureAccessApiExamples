@@ -32,6 +32,7 @@ public class PlasmaTexture : MonoBehaviour
         if (m_Texture == null)
         {
             m_Texture = new Texture2D(m_TextureSize, m_TextureSize, TextureFormat.RGBA32, false);
+            m_Texture.wrapMode = TextureWrapMode.Clamp;
             GetComponent<Renderer>().material.mainTexture = m_Texture;
             m_Colors = new Color[m_TextureSize * m_TextureSize];
         }
