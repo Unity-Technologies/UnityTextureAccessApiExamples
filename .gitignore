@@ -6,3 +6,4 @@ UserSettings/
 obj/
 *.csproj
 *.sln
+.DS_Store
