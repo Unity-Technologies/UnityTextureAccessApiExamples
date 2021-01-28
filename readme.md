@@ -13,7 +13,7 @@ An example where a "plasma effect" texture is updated on the CPU every frame.
 
 `Assets/PlasmaSampleScene` is the sample scene and code.
 
-Time it takes to update a 512x512 texture, on 2019 MacBookPro (Core i9 2.6GHz, 8 cores / 16 threads):
+Time it takes to update a 512x512 texture, on 2019 MacBookPro (Core i9 2.4GHz, 8 cores / 16 threads):
 
 - `SetPixels`: **113ms**,
 - `SetPixel`: 140ms,
