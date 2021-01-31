@@ -94,7 +94,7 @@ public class PlasmaTexture : MonoBehaviour
     {
         // Our job accesses does not just access one element of
         // this array that maps to the job index --
-        // we compute whole row of pixels in one job invocation. Thus vave to
+        // we compute whole row of pixels in one job invocation. Thus have to
         // tell the job safety system to stop checking that array
         // accesses map to job index on this array, via
         // the NativeDisableParallelForRestriction attribute.
