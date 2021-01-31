@@ -73,7 +73,7 @@ public class PlasmaTexture : MonoBehaviour
                 m_Texture.SetPixel(x, y, CalcPlasmaPixel(x, y, invSize, t));
     }
 
-    [BurstCompile(CompileSynchronously = true)]
+    [BurstCompile]
     struct CalcPlasmaIntoNativeArrayBurst : IJob
     {
         public NativeArray<Color32> data;
@@ -89,9 +89,15 @@ public class PlasmaTexture : MonoBehaviour
         }
     }
 
-    [BurstCompile(CompileSynchronously = true)]
+    [BurstCompile]
     struct CalcPlasmaIntoNativeArrayBurstParallel : IJobParallelFor
     {
+        // Our job accesses does not just access one element of
+        // this array that maps to the job index --
+        // we compute whole row of pixels in one job invocation. Thus vave to
+        // tell the job safety system to stop checking that array
+        // accesses map to job index on this array, via
+        // the NativeDisableParallelForRestriction attribute.
         [NativeDisableParallelForRestriction] public NativeArray<Color32> data;
         public int textureSize;
         public float invSize;
