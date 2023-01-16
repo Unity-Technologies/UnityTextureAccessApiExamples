@@ -4,5 +4,14 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/TestScenes/SimpleCopy.unity
+    guid: dea9c6360ead74949b4500d6f98f78d8
+  - enabled: 1
+    path: Assets/TestScenes/PlasmaTexture.unity
+    guid: 9fc0d4010bbf28b4594072e72b8655ab
+  - enabled: 1
+    path: Assets/TestScenes/TransferGPUTexture.unity
+    guid: ca14e039e77cb06409989b2d8645b073
   m_configObjects: {}

@@ -7,3 +7,6 @@ obj/
 *.csproj
 *.sln
 .DS_Store
+.vs/
+.vsconfig
+Build/

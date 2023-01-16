@@ -6,35 +6,36 @@ using UnityEngine;
 
 public enum PlasmaTextureMethod
 {
-    SetPixels,
     SetPixel,
+    SetPixels,
+    SetPixels32,
+    SetPixels32NoConversion,
     SetPixelDataBurst,
     SetPixelDataBurstParallel,
 }
 
-public class PlasmaTexture : MonoBehaviour
+// Note that Meshfilter should have a mesh assigned to display the generated texture.
+[RequireComponent(typeof(MeshRenderer))]
+[RequireComponent(typeof(MeshFilter))]
+public class PlasmaTexture : BaseTest<PlasmaTextureMethod>
 {
-    public int m_TextureSize = 512;
-    public PlasmaTextureMethod m_Method = PlasmaTextureMethod.SetPixels;
-    public UnityEngine.UI.Text m_UITime;
     Texture2D m_Texture;
     Color[] m_Colors;
-    float m_UpdateTime = -1;
-
-    void CreateTextureIfNeeded()
+    Color32[] m_Colors32;
+    protected override void CreateTextureIfNeeded()
     {
         if (m_Texture != null && m_Texture.width != m_TextureSize)
         {
             DestroyImmediate(m_Texture);
             m_Texture = null;
         }
-
         if (m_Texture == null)
         {
             m_Texture = new Texture2D(m_TextureSize, m_TextureSize, TextureFormat.RGBA32, false);
             m_Texture.wrapMode = TextureWrapMode.Clamp;
             GetComponent<Renderer>().material.mainTexture = m_Texture;
             m_Colors = new Color[m_TextureSize * m_TextureSize];
+            m_Colors32 = new Color32[m_TextureSize * m_TextureSize];
         }
     }
 
@@ -56,7 +57,6 @@ public class PlasmaTexture : MonoBehaviour
         var cc = math.cos(s + new float3(0.2f, 0.5f, 0.9f)) * 0.5f + 0.5f;
         return new Color(cc.x, cc.y, cc.z, 1);
     }
-
     void UpdateSetPixels(float invSize, float t)
     {
         var idx = 0;
@@ -66,13 +66,37 @@ public class PlasmaTexture : MonoBehaviour
         m_Texture.SetPixels(m_Colors, 0);
     }
 
+    void UpdateSetPixels32(float invSize, float t)
+    {
+        var idx = 0;
+        for (var y = 0; y < m_TextureSize; ++y)
+            for (var x = 0; x < m_TextureSize; ++x)
+            {
+                m_Colors32[idx++] = CalcPlasmaPixel(x, y, invSize, t);
+            }
+        m_Texture.SetPixels32(m_Colors32, 0);
+    }
+
+    void UpdateSetPixels32NoConversion(float invSize, float t)
+    {
+        var idx = 0;
+        for (var y = 0; y < m_TextureSize; ++y)
+            for (var x = 0; x < m_TextureSize; ++x)
+            {
+                // The Color -> Color32 conversion in the regular SetPixels32 sample causes it to be slower than a SetPixels approach where Unity handles the color conversion for the user.
+                // This example is a little more indicative of the potential of SetPixels32 as it performs the pixel calculation but skips the conversion in favor of assigning a default black color value.
+                CalcPlasmaPixel(x, y, invSize, t);
+                m_Colors32[idx++] = new Color32();
+            }
+        m_Texture.SetPixels32(m_Colors32, 0);
+    }
+
     void UpdateSetPixel(float invSize, float t)
     {
         for (var y = 0; y < m_TextureSize; ++y)
             for (var x = 0; x < m_TextureSize; ++x)
                 m_Texture.SetPixel(x, y, CalcPlasmaPixel(x, y, invSize, t));
     }
-
     [BurstCompile]
     struct CalcPlasmaIntoNativeArrayBurst : IJob
     {
@@ -94,7 +118,7 @@ public class PlasmaTexture : MonoBehaviour
     {
         // Our job accesses does not just access one element of
         // this array that maps to the job index --
-        // we compute whole row of pixels in one job invocation. Thus have to
+        // we compute the whole row of pixels in one job invocation. Thus have to
         // tell the job safety system to stop checking that array
         // accesses map to job index on this array, via
         // the NativeDisableParallelForRestriction attribute.
@@ -109,7 +133,7 @@ public class PlasmaTexture : MonoBehaviour
                 data[idx++] = CalcPlasmaPixel(x, y, invSize, t);
         }
     }
-    
+
     void UpdateSetPixelDataBurst(float invSize, float t)
     {
         var data = m_Texture.GetPixelData<Color32>(0);
@@ -135,33 +159,22 @@ public class PlasmaTexture : MonoBehaviour
         job.Schedule(m_TextureSize, 1).Complete();
     }
 
-    void Update()
+    protected override void UpdateTestCase()
     {
-        CreateTextureIfNeeded();
-
         var t = Time.time;
-
-        var t0 = Time.realtimeSinceStartup;
         var invSize = 1.0f / m_TextureSize;
+
         switch (m_Method)
         {
-            case PlasmaTextureMethod.SetPixels: UpdateSetPixels(invSize, t); break;
             case PlasmaTextureMethod.SetPixel: UpdateSetPixel(invSize, t); break;
+            case PlasmaTextureMethod.SetPixels: UpdateSetPixels(invSize, t); break;
+            case PlasmaTextureMethod.SetPixels32: UpdateSetPixels32(invSize, t); break;
+            case PlasmaTextureMethod.SetPixels32NoConversion: UpdateSetPixels32NoConversion(invSize, t); break;
             case PlasmaTextureMethod.SetPixelDataBurst: UpdateSetPixelDataBurst(invSize, t); break;
             case PlasmaTextureMethod.SetPixelDataBurstParallel: UpdateSetPixelDataBurstParallel(invSize, t); break;
         }
         // All the above calculations wrote new pixel values into a CPU
         // side texture memory copy. We need to send it off to the GPU now.
         m_Texture.Apply();
-        var t1 = Time.realtimeSinceStartup;
-        var dt = t1 - t0;
-        
-        // Update "time it took" UI indicator
-        if (m_UpdateTime < 0)
-            m_UpdateTime = dt;
-        else
-            m_UpdateTime = Mathf.Lerp(m_UpdateTime, dt, 0.3f);
-        if (m_UITime != null)
-            m_UITime.text = $"Texture {m_TextureSize}x{m_TextureSize} update {m_Method}: {m_UpdateTime*1000.0f:F2}ms";
     }
 }
